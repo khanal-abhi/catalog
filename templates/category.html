@@ -17,7 +17,9 @@
     </ul>
 </div>
 <div class="items">
-    <h2 class="hero-unit title">Latest Items</h2>
+    <h2 class="hero-unit title">{{ main_category.name }} Item ({{
+        items_count }}
+        item{{ 's' if items_count != 1 else '' }})</h2>
     <ul class="clean-list">
     {% for item in items %}
         <li><a href="item/{{ item.id }}">{{

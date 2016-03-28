@@ -1,6 +1,6 @@
 from flask import Flask, render_template, url_for, request, redirect
 
-from sqlalchemy import create_engine, desc
+from sqlalchemy import create_engine, desc, func
 from sqlalchemy.orm import sessionmaker
 
 from database_setup import Base, Item, Category, db_url
@@ -27,13 +27,18 @@ def index():
     return render_template('home.html', categories=categories, items=items)
 
 
-@app.route('/category/<int:category_id>/')
+@app.route('/category/<int:category_id>/items/')
 def show_category(category_id):
     try:
-        category = session.query(Category).filter_by(id=category_id).one()
-        result = category.name
+        categories = session.query(Category).all()
+        items = session.query(Item).filter_by(category_id=category_id).all()
+        items_count = (session.query(func.count(Item.id))).filter_by(
+            category_id=category_id).scalar()
+        main_category = session.query(Category).filter_by(id=category_id).one()
 
-        return result
+        return render_template('category.html', categories=categories,
+                               items=items, items_count=items_count,
+                               main_category=main_category)
 
     except:
         return "404"
