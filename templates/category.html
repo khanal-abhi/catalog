@@ -4,16 +4,17 @@
 <div class="categories">
     <h2 class="hero-unit title">Categories</h2>
     <ul class="clean-list">
+
     {% for category in categories %}
         <li><a
                 href="{{ url_for('show_category', category_id=category.id) }}">{{
             category.name
             }}</a></li>
     {% endfor %}
-        <li><a
-                href="{{ url_for('new_category') }}"><span class="new">add a
-            new
-            category</span></a></li>
+
+         <li><a class="negative" href="">
+            - category ({{ main_category.name }})
+        </a></li>
     </ul>
 </div>
 <div class="items">
@@ -27,9 +28,7 @@
             }}</a>
             <span class="subtitle">({{ item.category.name }})</span></li>
     {% endfor %}
-        <li><a
-                href="{{ url_for('new_item') }}"><span class="new">add a new
-            item</span></a></li>
+
     </ul>
 </div>
 

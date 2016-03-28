@@ -11,8 +11,7 @@
             }}</a></li>
     {% endfor %}
         <li><a
-                href="{{ url_for('new_category') }}"><span class="new">add a
-            new
+                href="{{ url_for('new_category') }}"><span class="new">+
             category</span></a></li>
     </ul>
 </div>
@@ -26,8 +25,8 @@
             <span class="subtitle">({{ item.category.name }})</span></li>
     {% endfor %}
         <li><a
-                href="{{ url_for('new_item') }}"><span class="new">add a new
-            item</span></a></li>
+                href="{{ url_for('new_item') }}"><span class="new">+ item
+        </span></a></li>
     </ul>
 </div>
 

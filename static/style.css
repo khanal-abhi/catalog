@@ -20,17 +20,20 @@ body {
 
 .clean-list {
     list-style: none;
+    font-size: large;
 }
 
 .categories {
     float: left;
-    width: 25%;
+    width: 33%;
     border-right: solid 1px chocolate;
+    padding: 10px;
 }
 
 .items{
+    padding: 10px;
     float: right;
-    width: 75%;
+    width: 67%;
 }
 
 .title{
@@ -43,9 +46,21 @@ body {
 }
 
 .new {
-    color: lightcoral;
+    color: lightseagreen;
+}
+
+.negative{
+    color: red;
 }
 
 .form {
     padding: 20px;
+}
+
+.righty {
+    float: right;
+}
+
+.lefty {
+    float: left;
 }
