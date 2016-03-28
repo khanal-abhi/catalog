@@ -11,10 +11,12 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 
 
-
+@app.route('/static/style.css/')
+def load_css():
+    return app.send_static_file('style.css')
 
 @app.route('/')
 def index():

@@ -1,0 +1,32 @@
+/*Custom css on top of the bootsrap for my customization*/
+
+html {
+    background-color: darkgrey;
+}
+
+body {
+    background-color: darkgrey;
+}
+
+.constrained {
+    background-color: antiquewhite;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 1000px;
+    padding: 10px 0 10px 0;
+}
+
+.clean-list {
+    list-style: none;
+}
+
+.categories {
+    float: left;
+    width: 25%;
+    border-right: solid 1px chocolate;
+}
+
+.items{
+    float: right;
+    width: 75%;
+}

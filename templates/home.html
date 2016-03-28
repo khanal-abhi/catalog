@@ -1,9 +1,9 @@
 {% extends "layout.html" %}
 {% block body %}
-    <div class="container container-fluid">
-        <div class="categories">
 
-            <ul>
+<div class="categories">
+
+            <ul class="clean-list">
             {% for category in categories %}
                 <li><a href="category/{{ category.id }}">{{
                     category.name
@@ -14,7 +14,5 @@
         <div class="items">
 
         </div>
-
-    </div>
 
 {% endblock %}}
