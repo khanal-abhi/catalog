@@ -35,6 +35,7 @@ class Item(Base):
 
 
 
+db_url = "postgresql:///catalog"
 
-engine = create_engine("postgresql:///catalog")
+engine = create_engine(db_url)
 Base.metadata.create_all(engine)
