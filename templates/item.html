@@ -19,7 +19,8 @@
             }}</span>
     </fieldset>
     <fieldset class="form=group">
-        <a href="{{ '#' }}" class="btn btn-primary">Edit</a>
+        <a href="{{ url_for('edit_item', item_id=item.id) }}"
+           class="btn btn-primary">Edit</a>
         <a href="{{ url_for('delete_item', item_id=item.id) }}"
            class="btn btn-danger">Delete
         </a>

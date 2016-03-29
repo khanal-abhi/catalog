@@ -14,7 +14,6 @@ session = DBSession()
 app = Flask(__name__, static_url_path='/static')
 
 
-
 @app.route('/')
 def index():
     """Main page of the web app. We need to query all the categories and all
@@ -176,6 +175,54 @@ def delete_item(item_id):
         session.rollback()
         flash("Could not delete item #%i." % item_id, 'warning')
         return redirect(url_for('index'))
+
+
+@app.route('/item/<int:item_id>/edit/', methods=['POST', 'GET'])
+def edit_item(item_id):
+    """Creates a new item if it is a POST request and loads the form to
+    create one if it is a GET request."""
+    if request.method == 'POST':
+        try:
+            item_title = request.form['title']
+            item_description = request.form['description']
+            item_category_id = request.form['category']
+            item = session.query(Item).filter_by(id=item_id).one()
+            category = session.query(Category).filter_by(
+                id=item_category_id).one()
+            item.title = item_title
+            item.description = item_description
+            item.category = category
+            session.commit()
+            flash("Edited the item %s!" % item.title, 'success')
+            return redirect(
+                url_for('index'))
+
+        except:
+            session.rollback()
+            flash(u'Inavlid parameters. Please try again.', 'warning')
+            categories = session.query(Category).all()
+            category = session.query(Category).filter_by(
+                id=item_category_id).one()
+            item = Item(title=item_title, description=item_description,
+                        category=category)
+            return render_template('edit_item.html',
+                                   item_id=item_id, item=item,
+                                   categories=categories)
+
+    if request.method == 'GET':
+        """Send all the categories as options for the item."""
+        item = session.query(Item).filter_by(id=item_id).one()
+        item_count = (session.query(func.count(Item.id)).filter_by(
+            id=item_id)).scalar()
+        categories = session.query(Category).all()
+
+        if item_count == 0:
+            flash("Could not find item $%i. Please try again," % item_id,
+                  'warning')
+            return redirect(url_for('index'))
+
+        return render_template('edit_item.html', item_id=item_id, item=item,
+                               categories=categories)
 
 
 if __name__ == '__main__':
