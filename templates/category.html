@@ -12,7 +12,8 @@
             }}</a></li>
     {% endfor %}
 
-         <li><a class="negative" href="">
+         <li><a class="negative"
+                href="{{ url_for('delete_category', category_id=main_category.id) }}">
             - category ({{ main_category.name }})
         </a></li>
     </ul>
@@ -23,7 +24,7 @@
         item{{ 's' if items_count != 1 else '' }})</h2>
     <ul class="clean-list">
     {% for item in items %}
-        <li><a href="item/{{ item.id }}">{{
+        <li><a href="{{ url_for('show_item', item_id=item.id) }}">{{
             item.title
             }}</a>
             <span class="subtitle">({{ item.category.name }})</span></li>

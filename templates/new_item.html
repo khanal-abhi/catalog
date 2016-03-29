@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<div class="form">
+   <form method="post" action="{{ url_for('new_item') }}">
+       <fieldset class="form-group">
+           <label for="title">Item Name:</label>
+           <input class="form-control" type="text" name="title" id="title"
+                  placeholder="Ball" value="{{ item_title }}"/>
+       </fieldset>
+       <fieldset class="form-group">
+           <label for="description">Item Description:</label>
+           <textarea rows="5" name="description" id="description"
+                     class="form-control"
+                     placeholder="Ball is used in many different sports including but not limited to basketball.">{{ item_description }}</textarea>
+       </fieldset>
+       <!--<fieldset class="form-group">-->
+           <!--<label for="file_upload">Upload A Picture:</label>-->
+           <!--<input type="file" id="file_upload" name="file_upload"-->
+                  <!--class="form-control" />-->
+       <!--</fieldset>-->
+
+       <fieldset class="form-group">
+           <label for="category">Select Category:</label>
+           <select id="category" name="category" class="form-control"
+                   selected="{{ item_category_id }}">
+               {% for category in categories %}
+               <option value="{{ category.id }}">{{ category.name }}</option>
+               {% endfor %}
+           </select>
+       </fieldset>
+
+       <fieldset class="form-group">
+
+           <input type="submit" value="Submit &raquo;"
+                  class="btn btn-primary form-control" id="submit"/>
+       </fieldset>
+
+   </form>
+</div>
+
+{% endblock %}}

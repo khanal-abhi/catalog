@@ -1,0 +1,29 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<div class="form">
+    <fieldset class="form-group">
+        <label for="title">Title:</label>
+        <span class="" id="title">{{ item.title }}</span>
+    </fieldset>
+
+    <fieldset class="form-group">
+        <label for="description">Description:</label>
+        <span class="" id="description">{{ item.description
+            }}</span>
+    </fieldset>
+
+    <fieldset class="form-group">
+        <label for="category">Category:</label>
+        <span class="" id="category">{{ item.category.name
+            }}</span>
+    </fieldset>
+    <fieldset class="form=group">
+        <a href="{{ '#' }}" class="btn btn-primary">Edit</a>
+        <a href="{{ url_for('delete_item', item_id=item.id) }}"
+           class="btn btn-danger">Delete
+        </a>
+    </fieldset>
+</div>
+
+{% endblock %}}

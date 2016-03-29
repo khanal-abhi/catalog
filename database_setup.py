@@ -16,7 +16,6 @@ class Category(Base):
         String(80), nullable=False
     )
 
-
 class Item(Base):
     __tablename__ = 'item'
     id = Column(
@@ -27,6 +26,9 @@ class Item(Base):
     )
     description = Column(
         String, nullable=False
+    )
+    image_url = Column(
+        String, nullable=True
     )
     category_id = Column(
         Integer, ForeignKey('category.id')
