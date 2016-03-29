@@ -1,8 +1,7 @@
-import sys
 from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from sqlalchemy import create_engine
 
 Base = declarative_base()
 
@@ -15,6 +14,12 @@ class Category(Base):
     name = Column(
         String(80), nullable=False
     )
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "name": self.name
+        }
 
 class Item(Base):
     __tablename__ = 'item'
@@ -34,6 +39,14 @@ class Item(Base):
         Integer, ForeignKey('category.id')
     )
     category = relationship(Category)
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "category_id": self.category_id
+        }
 
 
 

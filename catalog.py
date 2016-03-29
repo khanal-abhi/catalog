@@ -1,4 +1,5 @@
-from flask import Flask, render_template, url_for, request, redirect, flash
+from flask import Flask, render_template, url_for, request, redirect, flash, \
+    jsonify
 
 from sqlalchemy import create_engine, desc, func
 from sqlalchemy.orm import sessionmaker
@@ -223,6 +224,52 @@ def edit_item(item_id):
 
         return render_template('edit_item.html', item_id=item_id, item=item,
                                categories=categories)
+
+
+@app.route('/api/<int:category_id>/items/')
+def json_items(category_id):
+    """Returns a json containing all the items that belong to the category
+    as referenced by the category_id."""
+    items = session.query(Item).filter_by(category_id=category_id).all()
+
+    return jsonify(items=[item.serialize() for item in items])
+
+
+@app.route('/api/<int:item_id>/item/')
+def json_item(item_id):
+    """Returns the single item referenced by the item_id."""
+    items = session.query(Item).filter_by(id=item_id).all()
+
+    return jsonify(item=[item.serialize() for item in items])
+
+@app.route('/api/all/')
+def json_all():
+    """Returns all the category and each item belonging to the categories."""
+
+    """Get all the categories"""
+    categories = session.query(Category).all()
+
+    """Create an empty list to store the categories in."""
+    result = []
+    for category in categories:
+        """Get all the items in each category at a time."""
+        items = session.query(Item).filter_by(category_id=category.id).all()
+
+        """Empty list to store the items."""
+        category_items = []
+        for item in items:
+            """Serialize each item and add it to each categories list."""
+            category_items.append(item.serialize())
+
+        """Append a dictionary per category that has the serialized category
+        as well as the list of serialized items that belongs to it."""
+        result.append({
+            'category': category.serialize(),
+            'items': category_items
+        })
+
+    """Return the JSON."""
+    return jsonify(result=result)
 
 
 if __name__ == '__main__':
