@@ -16,6 +16,7 @@ class Category(Base):
     )
 
     def serialize(self):
+        """Serializes the model for json dumps."""
         return {
             "id": self.id,
             "name": self.name
@@ -41,6 +42,7 @@ class Item(Base):
     category = relationship(Category)
 
     def serialize(self):
+        """Serializes the model for json dumps."""
         return {
             "id": self.id,
             "title": self.title,
