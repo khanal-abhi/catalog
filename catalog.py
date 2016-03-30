@@ -72,6 +72,11 @@ def new_category():
     if request.method == 'POST':
         """POST request, so lets process the form and add the new catagory."""
         try:
+            csrf_token = request.form['csrf_token']
+            if csrf_token != login_session['csrf_token']:
+                return redirect(
+                    "https://www.youtube.com/watch?v=dQw4w9WgXcQ", code=301)
+
             name = request.form['name']
             name = name.strip()
             category = Category(name=name)
@@ -128,6 +133,11 @@ def new_item():
     create one if it is a GET request."""
     if request.method == 'POST':
         try:
+            csrf_token = request.form['csrf_token']
+            if csrf_token != login_session['csrf_token']:
+                return redirect(
+                    "https://www.youtube.com/watch?v=dQw4w9WgXcQ", code=301)
+
             item_title = request.form['title']
             item_description = request.form['description']
             item_category_id = request.form['category']
@@ -156,7 +166,12 @@ def new_item():
             flash(u'There are no categories yet. Please create one first',
                   'warning')
             return redirect(url_for('new_category'))
-        return render_template('new_item.html', categories=categories)
+
+        csrf_token = ''.join(random.choice(string.uppercase + string.digits)
+        for x in xrange(32))
+        login_session['csrf_token'] = csrf_token
+        return render_template('new_item.html', categories=categories,
+                               csrf_token=csrf_token)
 
 
 @app.route('/item/<int:item_id>/')
@@ -192,6 +207,12 @@ def edit_item(item_id):
     create one if it is a GET request."""
     if request.method == 'POST':
         try:
+
+            csrf_token = request.form['csrf_token']
+            if csrf_token != login_session['csrf_token']:
+                return redirect(
+                    "https://www.youtube.com/watch?v=dQw4w9WgXcQ", code=301)
+
             item_title = request.form['title']
             item_description = request.form['description']
             item_category_id = request.form['category']
@@ -230,8 +251,12 @@ def edit_item(item_id):
                   'warning')
             return redirect(url_for('index'))
 
+        csrf_token = ''.join(random.choice(string.uppercase, string.digits)
+                             for x in xrange(32))
+        login_session['csrf_token'] = csrf_token
+
         return render_template('edit_item.html', item_id=item_id, item=item,
-                               categories=categories)
+                               categories=categories, csrf_token=csrf_token)
 
 
 @app.route('/api/<int:category_id>/items/')
@@ -278,6 +303,13 @@ def json_all():
 
     """Return the JSON."""
     return jsonify(result=result)
+
+@app.route('/login/')
+def login():
+    csrf_token = ''.join(random.choice(string.uppercase + string.digits) for
+                         x in xrange(32))
+    login_session['csrf_token'] = csrf_token
+    return render_template('login.html', csrf_token=csrf_token)
 
 
 if __name__ == '__main__':

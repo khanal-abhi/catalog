@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block body %}
+
+<div class="form">
+   <form method="post" action="{{ url_for('login') }}">
+       <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
+
+       <fieldset class="form-group">
+           <label for="login">Login:</label>
+           <input type="submit" value="Submit &raquo;" id="login"
+                  class="btn btn-primary" />
+       </fieldset>
+
+   </form>
+</div>
+
+{% endblock %}}
