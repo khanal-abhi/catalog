@@ -15,7 +15,7 @@ class User(Base):
         String(80), nullable=False
     )
     email = Column(
-        String(80), nullable=True
+        String(80), nullable=True, unique=True
     )
     picture = Column(
         String, nullable=True

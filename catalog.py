@@ -2,9 +2,10 @@ from flask import Flask, render_template, url_for, request, redirect, flash, \
     jsonify, make_response
 
 from sqlalchemy import create_engine, desc, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 
-from database_setup import Base, Item, Category, db_url
+from database_setup import Base, Item, Category, db_url, User
 from flask import session as login_session
 import random
 import string
@@ -18,8 +19,6 @@ import requests
 CLIENT_ID = json.loads(open('client_secrets.json', 'r').read())['web'][
     'client_id']
 
-
-
 engine = create_engine(db_url)
 Base.metadata.bind = engine
 
@@ -27,6 +26,29 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 app = Flask(__name__, static_url_path='/static')
+
+
+def already_a_user(user_email):
+    user_count = (session.query(func.count(User.id))).filter_by(
+        email=user_email).scalar()
+    return True if user_count > 0 else False
+
+
+def create_user():
+    new_user = User(name=login_session['username'], email=login_session[
+        'email'], picture=login_session['picture'])
+    session.add(new_user)
+    session.commit()
+    return session.query(User).filter_by(email=login_session['email']).one().id
+
+
+def get_user_info(user_id):
+    return session.query(User).filter_by(id=user_id).one()
+
+
+def get_user_id(user_email):
+    return session.query(User).filter_by(email=user_email).one().id
+
 
 def get_user():
     try:
@@ -92,8 +114,8 @@ def new_category():
             return redirect(url_for('login'))
 
         csrf_token = ''.join(random.choice(string.ascii_uppercase +
-                                          string.digits)
-        for x in xrange(32))
+                                           string.digits)
+                             for x in xrange(32))
         login_session['csrf_token'] = csrf_token
 
         return render_template('new_category.html', csrf_token=csrf_token,
@@ -115,7 +137,8 @@ def new_category():
 
             name = request.form['name']
             name = name.strip()
-            category = Category(name=name)
+            user_id = get_user_id(login_session['email'])
+            category = Category(name=name, user_id=user_id)
             session.add(category)
             session.commit()
             flash("New category %s added!" % name, 'success')
@@ -186,11 +209,13 @@ def new_item():
                 return redirect(
                     "https://www.youtube.com/watch?v=dQw4w9WgXcQ", code=301)
 
+            user_id = get_user_id(login_session['email'])
+
             item_title = request.form['title']
             item_description = request.form['description']
             item_category_id = request.form['category']
             new_item = Item(title=item_title, description=item_description,
-                            category_id=item_category_id)
+                            category_id=item_category_id, user_id=user_id)
             session.add(new_item)
             session.commit()
             flash("Create new item %s!" % new_item.title, 'success')
@@ -220,7 +245,7 @@ def new_item():
             return redirect(url_for('new_category'))
 
         csrf_token = ''.join(random.choice(string.uppercase + string.digits)
-        for x in xrange(32))
+                             for x in xrange(32))
         login_session['csrf_token'] = csrf_token
         return render_template('new_item.html', categories=categories,
                                csrf_token=csrf_token, user=get_user())
@@ -336,6 +361,7 @@ def json_item(item_id):
 
     return jsonify(item=[item.serialize() for item in items])
 
+
 @app.route('/api/all/')
 def json_all():
     """Returns all the category and each item belonging to the categories."""
@@ -365,12 +391,14 @@ def json_all():
     """Return the JSON."""
     return jsonify(result=result)
 
+
 @app.route('/login/')
 def login():
     csrf_token = ''.join(random.choice(string.uppercase + string.digits) for
                          x in xrange(32))
     login_session['csrf_token'] = csrf_token
-    return render_template('login.html', csrf_token=csrf_token, user=get_user())
+    return render_template('login.html', csrf_token=csrf_token,
+                           user=get_user())
 
 
 @app.route('/gconnect', methods=['POST'])
@@ -435,17 +463,22 @@ def gconnect():
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
 
-    output = ''
-    output += '<h1>Welcome, '
-    output += login_session['username']
-    output += '!</h1>'
-    output += '<img src="'
-    output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: ' \
-              '150px;-webkit-border-radius: 150px;-moz-border-radius: ' \
-              '150px;"> '
-    flash("You are now logged in as %s" % login_session['username'], 'success')
-    return output
+    try:
+        create_user()
+        flash("Welcome to Catalog, %s!" % login_session['username'], 'success')
+    except IntegrityError:
+        session.rollback()
+        flash("You have logged in as %s!" % login_session['username'],
+              'success')
+    response = jsonify({
+        'result': 'successful',
+        'url': '/'
+    })
+    response.headers['Content-Type'] = 'application/json'
+    response.headers['status'] = '200'
+    return response
+
+
 
 @app.route('/logout/')
 def gdisconnect():
