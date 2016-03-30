@@ -6,6 +6,22 @@ from sqlalchemy.orm import relationship
 Base = declarative_base()
 
 
+class User(Base):
+    __tablename__ = 'user'
+    id = Column(
+        Integer, primary_key=True
+    )
+    name = Column(
+        String(80), nullable=False
+    )
+    email = Column(
+        String(80), nullable=True
+    )
+    picture = Column(
+        String, nullable=True
+    )
+
+
 class Category(Base):
     __tablename__ = 'category'
     id = Column(
@@ -14,6 +30,10 @@ class Category(Base):
     name = Column(
         String(80), nullable=False
     )
+    user_id = Column(
+        Integer, ForeignKey('user.id')
+    )
+    user = relationship(User)
 
     def serialize(self):
         """Serializes the model for json dumps."""
@@ -21,6 +41,7 @@ class Category(Base):
             "id": self.id,
             "name": self.name
         }
+
 
 class Item(Base):
     __tablename__ = 'item'
@@ -40,6 +61,10 @@ class Item(Base):
         Integer, ForeignKey('category.id')
     )
     category = relationship(Category)
+    user_id = Column(
+        Integer, ForeignKey('user.id')
+    )
+    user = relationship(User)
 
     def serialize(self):
         """Serializes the model for json dumps."""
@@ -49,6 +74,7 @@ class Item(Base):
             "description": self.description,
             "category_id": self.category_id
         }
+
 
 
 
