@@ -3,6 +3,7 @@
 
 <div class="form">
    <form method="post" action="{{ url_for('new_category') }}">
+       <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
        <fieldset class="form-group">
            <label for="name">Category Name:</label>
            <input class="form-control" type="text" name="name" id="name"

@@ -5,6 +5,8 @@ from sqlalchemy import create_engine, desc, func
 from sqlalchemy.orm import sessionmaker
 
 from database_setup import Base, Item, Category, db_url
+from flask import session as login_session
+import random, string
 
 engine = create_engine(db_url)
 Base.metadata.bind = engine
@@ -59,7 +61,13 @@ def new_category():
 
     if request.method == 'GET':
         """GET request, so lets load the template with the form."""
-        return render_template('new_category.html')
+
+        csrf_token = ''.join(random.choice(string.ascii_uppercase +
+                                          string.digits)
+        for x in xrange(32))
+        login_session['csrf_token'] = csrf_token
+
+        return render_template('new_category.html', csrf_token=csrf_token)
 
     if request.method == 'POST':
         """POST request, so lets process the form and add the new catagory."""
