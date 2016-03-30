@@ -1,17 +1,25 @@
 {% extends "layout.html" %}
+{% block head %}
+
+<script src="https://apis.google.com/js/client:platform.js?onload=start"
+        async defer></script>
+{% endblock %}
+
 {% block body %}
 
-<div class="form">
-   <form method="post" action="{{ url_for('login') }}">
-       <input type="hidden" name="csrf_token" value="{{ csrf_token }}"/>
 
-       <fieldset class="form-group">
-           <label for="login">Login:</label>
-           <input type="submit" value="Submit &raquo;" id="login"
-                  class="btn btn-primary" />
-       </fieldset>
-
-   </form>
+<div id="signInButton">
+  <span class="g-signin"
+    data-scope="openid email"
+    data-clientid="675366554281-piloe8bnekq3e3t1cukes6qdtfhh8seo.apps.googleusercontent.com"
+    data-redirecturi="postmessage"
+    data-accesstype="offline"
+    data-cookiepolicy="single_host_origin"
+    data-callback="signInCallback"
+    data-approvalprompt="force">
+  </span>
 </div>
+<div id="result">
 
+</div>
 {% endblock %}}
