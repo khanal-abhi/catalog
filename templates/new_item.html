@@ -3,6 +3,7 @@
 
 <div class="form">
    <form method="post" action="{{ url_for('new_item') }}">
+       <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
        <fieldset class="form-group">
            <label for="title">Item Name:</label>
            <input class="form-control" type="text" name="title" id="title"
@@ -14,11 +15,6 @@
                      class="form-control"
                      placeholder="Ball is used in many different sports including but not limited to basketball.">{{ item_description }}</textarea>
        </fieldset>
-       <!--<fieldset class="form-group">-->
-           <!--<label for="file_upload">Upload A Picture:</label>-->
-           <!--<input type="file" id="file_upload" name="file_upload"-->
-                  <!--class="form-control" />-->
-       <!--</fieldset>-->
 
        <fieldset class="form-group">
            <label for="category">Select Category:</label>

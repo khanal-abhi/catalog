@@ -23,5 +23,33 @@
 
 </div>
 
-<script src="{{ url_for('static', filename='js/login.js') }}"></script>
+<script>
+  function signInCallback(authResult){
+    if(authResult['code']){
+
+        // Need to hide the signInButton since the user is logged in.
+        $('#signInButton').attr('style', 'display: None');
+
+        $.ajax({
+            type: 'POST',
+            url: '/gconnect?csrf_token={{ csrf_token }}',
+            processData: false,
+            contentType: 'application/octet-stream; charset=utf-8',
+            data:authResult['code'],
+            success: function (result) {
+                if(result){
+                  window.location.href = '/';
+                } else if(authResult['error']){
+                    console.log('There was an error: ' + authResult['error']);
+
+                } else {
+                    $('#result').html('Failed to make server call. Check' +
+                        ' your configuration and console.')
+                }
+            }
+
+        });
+    }
+}
+</script>
 {% endblock %}}

@@ -35,10 +35,15 @@
         <li><a href="https://www.linkedin.com/in/abhikhanal">Linked In</a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
-        <li><a href="#"><span class="glyphicon glyphicon-user"></span> Sign Up</a></li>
-        <li><a href="{{ url_for('login') }}"><span
+          {% if user %}
+          <li><img src="{{ user.picture }}" alt="avatar" class="avatar"/></li>
+          <li><a href="{{ url_for('gdisconnect') }}"><span
+                  class="glyphicon glyphicon-log-out"></span>Logout</a></li>
+          {% else %}
+          <li><a href="{{ url_for('login') }}"><span
                 class="glyphicon glyphicon-log-in"></span>
             Login</a></li>
+          {% endif %}
       </ul>
     </div>
   </div>

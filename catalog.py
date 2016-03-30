@@ -28,6 +28,19 @@ session = DBSession()
 
 app = Flask(__name__, static_url_path='/static')
 
+def get_user():
+    try:
+        user = {
+            'name': login_session['username'],
+            'email': login_session['email'],
+            'picture': login_session['picture']
+        }
+
+    except:
+        user = None
+
+    return user
+
 
 @app.route('/')
 def index():
@@ -39,7 +52,8 @@ def index():
     """Let's limit the items to be the latest 20 items."""
     items = session.query(Item).order_by(desc(Item.id)).limit(20)
 
-    return render_template('home.html', categories=categories, items=items)
+    return render_template('home.html', categories=categories, items=items,
+                           user=get_user())
 
 
 @app.route('/category/<int:category_id>/items/')
@@ -59,7 +73,7 @@ def show_category(category_id):
 
         return render_template('category.html', categories=categories,
                                items=items, items_count=items_count,
-                               main_category=main_category)
+                               main_category=main_category, user=get_user())
 
     except:
         flash(u'Category not found. Please try another.', 'warning')
@@ -74,15 +88,25 @@ def new_category():
     if request.method == 'GET':
         """GET request, so lets load the template with the form."""
 
+        if get_user() is None:
+            return redirect(url_for('login'))
+
         csrf_token = ''.join(random.choice(string.ascii_uppercase +
                                           string.digits)
         for x in xrange(32))
         login_session['csrf_token'] = csrf_token
 
-        return render_template('new_category.html', csrf_token=csrf_token)
+        return render_template('new_category.html', csrf_token=csrf_token,
+                               user=get_user())
 
     if request.method == 'POST':
         """POST request, so lets process the form and add the new catagory."""
+
+        if get_user() is None:
+            return redirect(url_for('login'))
+
+        name = None
+
         try:
             csrf_token = request.form['csrf_token']
             if csrf_token != login_session['csrf_token']:
@@ -100,13 +124,17 @@ def new_category():
         except:
             session.rollback()
             flash(u'Invalid name. Please try again.', 'warning')
-            return render_template('new_category.html', name=name)
+            return render_template('new_category.html', name=name,
+                                   user=get_user())
 
 
 @app.route('/category/<int:category_id>/delete')
 def delete_category(category_id):
     """Delete the selected category. But need to clear out the dependant
     items first."""
+
+    if get_user() is None:
+        return redirect(url_for('login'))
 
     try:
         """Let's delete all the items that belong to the said category by
@@ -136,7 +164,8 @@ def delete_category(category_id):
         session.rollback()
         flash("Could not delete category %s!" % deleting_category.name,
               'warning')
-        return redirect(url_for('show_category'), category_id=category_id)
+        return redirect(url_for('show_category'), category_id=category_id,
+                        user=get_user())
 
 
 @app.route('/item/new/', methods=['POST', 'GET'])
@@ -144,6 +173,13 @@ def new_item():
     """Creates a new item if it is a POST request and loads the form to
     create one if it is a GET request."""
     if request.method == 'POST':
+        if get_user() is None:
+            return redirect(url_for('login'))
+
+        item_title = None
+        item_description = None
+        item_category_id = None
+
         try:
             csrf_token = request.form['csrf_token']
             if csrf_token != login_session['csrf_token']:
@@ -163,15 +199,19 @@ def new_item():
 
         except:
             session.rollback()
+
             flash(u'Inavlid parameters. Please try again.', 'warning')
             categories = session.query(Category).all()
             return render_template('new_item.html', item_title=item_title,
                                    item_description=item_description,
                                    item_category_id=item_category_id,
-                                   categories=categories)
+                                   categories=categories, user=get_user())
 
     if request.method == 'GET':
         """Send all the categories as options for the item."""
+        if get_user() is None:
+            return redirect(url_for('login'))
+
         categories = session.query(Category).all()
         categories_count = (session.query(func.count(Category.id))).scalar()
         if categories_count == 0:
@@ -183,7 +223,7 @@ def new_item():
         for x in xrange(32))
         login_session['csrf_token'] = csrf_token
         return render_template('new_item.html', categories=categories,
-                               csrf_token=csrf_token)
+                               csrf_token=csrf_token, user=get_user())
 
 
 @app.route('/item/<int:item_id>/')
@@ -195,11 +235,14 @@ def show_item(item_id):
         flash("Item #%i not found. Please try again." % item_id, 'warning')
         return redirect(url_for('index'))
 
-    return render_template('item.html', item=item)
+    return render_template('item.html', item=item, user=get_user())
 
 
 @app.route('/item/<int:item_id>/delete')
 def delete_item(item_id):
+    if get_user() is None:
+        return redirect(url_for('login'))
+
     try:
         item = session.query(Item).filter_by(id=item_id).one()
         session.delete(item)
@@ -218,8 +261,10 @@ def edit_item(item_id):
     """Creates a new item if it is a POST request and loads the form to
     create one if it is a GET request."""
     if request.method == 'POST':
-        try:
+        if get_user() is None:
+            return redirect(url_for('login'))
 
+        try:
             csrf_token = request.form['csrf_token']
             if csrf_token != login_session['csrf_token']:
                 return redirect(
@@ -249,10 +294,13 @@ def edit_item(item_id):
                         category=category)
             return render_template('edit_item.html',
                                    item_id=item_id, item=item,
-                                   categories=categories)
+                                   categories=categories, user=get_user())
 
     if request.method == 'GET':
         """Send all the categories as options for the item."""
+        if get_user() is None:
+            return redirect(url_for('login'))
+
         item = session.query(Item).filter_by(id=item_id).one()
         item_count = (session.query(func.count(Item.id)).filter_by(
             id=item_id)).scalar()
@@ -268,7 +316,8 @@ def edit_item(item_id):
         login_session['csrf_token'] = csrf_token
 
         return render_template('edit_item.html', item_id=item_id, item=item,
-                               categories=categories, csrf_token=csrf_token)
+                               categories=categories, csrf_token=csrf_token,
+                               user=get_user())
 
 
 @app.route('/api/<int:category_id>/items/')
@@ -321,7 +370,7 @@ def login():
     csrf_token = ''.join(random.choice(string.uppercase + string.digits) for
                          x in xrange(32))
     login_session['csrf_token'] = csrf_token
-    return render_template('login.html', csrf_token=csrf_token)
+    return render_template('login.html', csrf_token=csrf_token, user=get_user())
 
 
 @app.route('/gconnect', methods=['POST'])
@@ -332,7 +381,7 @@ def gconnect():
         return response
     code = request.data
     try:
-        oauth_flow = flow_from_clientsecrets('client_secrest.json', scope='')
+        oauth_flow = flow_from_clientsecrets('client_secrets.json', scope='')
         oauth_flow.redirect_uri = 'postmessage'
         credentials = oauth_flow.step2_exchange(code)
 
@@ -366,8 +415,8 @@ def gconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
 
-    stored_credentials = login_session['credentials']
-    stored_gplus_id = login_session['gplus_id']
+    stored_credentials = login_session.get('credentials')
+    stored_gplus_id = login_session.get('gplus_id')
     if stored_credentials is not None and gplus_id == stored_gplus_id:
         response = make_response(json.dumps('User is already connected.', 200))
         response.headers['Content-Type'] = 'applcation/json'
@@ -375,23 +424,57 @@ def gconnect():
     login_session['credentials'] = credentials
     login_session['gplus_id'] = gplus_id
 
-    userinfo_url = 'https://www.googleapis.com/oauth2/v1/userinfo'
-    params = {
-        'access_token': credentials.access_token,
-        'alt': 'json'
-    }
+    # Get user info
+    userinfo_url = "https://www.googleapis.com/oauth2/v1/userinfo"
+    params = {'access_token': credentials.access_token, 'alt': 'json'}
     answer = requests.get(userinfo_url, params=params)
 
-    data = answer.json
+    data = answer.json()
+
     login_session['username'] = data['name']
     login_session['picture'] = data['picture']
     login_session['email'] = data['email']
 
-    csrf_token = ''.join(random.choice(string.uppercase + string.digits) for
-                         x in xrange(32))
-    login_session['csrf_token'] = csrf_token
-    flash('You have been logged in', 'success')
-    return render_template('login.html', csrf_token=csrf_token)
+    output = ''
+    output += '<h1>Welcome, '
+    output += login_session['username']
+    output += '!</h1>'
+    output += '<img src="'
+    output += login_session['picture']
+    output += ' " style = "width: 300px; height: 300px;border-radius: ' \
+              '150px;-webkit-border-radius: 150px;-moz-border-radius: ' \
+              '150px;"> '
+    flash("You are now logged in as %s" % login_session['username'], 'success')
+    return output
+
+@app.route('/logout/')
+def gdisconnect():
+    if get_user() is None:
+        flash("No user is logged in!", 'warning')
+        return redirect(url_for('index'))
+
+    credentials = login_session['credentials']
+    access_token = credentials.access_token
+    url = "https://accounts.google.com/o/oauth2/revoke?token=%s" % access_token
+    http = httplib2.Http()
+    result = http.request(url, 'GET')[0]
+    print result
+
+    if result['status'] == '200':
+        del login_session['credentials']
+        del login_session['gplus_id']
+        del login_session['username']
+        del login_session['email']
+        del login_session['picture']
+
+        flash("You have been successfully disconnected!", 'success')
+        return redirect(url_for('index'))
+
+    else:
+        response = make_response(json.dumps('error', result['status']))
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
 
 if __name__ == '__main__':
     app.debug = True
