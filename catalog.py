@@ -15,6 +15,7 @@ import httplib2
 import json
 
 import requests
+import os
 
 CLIENT_ID = json.loads(open('client_secrets.json', 'r').read())['web'][
     'client_id']
@@ -214,6 +215,7 @@ def new_item():
         item_title = None
         item_description = None
         item_category_id = None
+        item_file_url = None
 
         try:
             csrf_token = request.form['csrf_token']
@@ -226,8 +228,26 @@ def new_item():
             item_title = request.form['title']
             item_description = request.form['description']
             item_category_id = request.form['category']
+
+            try:
+                file = request.files['file']
+                filename = ''.join(random.choice(string.uppercase +
+                                                 string.digits) for x in
+                                   xrange(12))
+                filename = filename + file.filename
+                storage_path = os.path.dirname(os.path.realpath(__file__))
+                storage_path = os.path.join(storage_path, '/static/images')
+                file.save(os.path.join(storage_path, filename))
+
+            except:
+                filename = None
+
             new_item = Item(title=item_title, description=item_description,
                             category_id=item_category_id, user_id=user_id)
+
+            if filename is not None:
+                new_item.image_url = filename
+
             session.add(new_item)
             session.commit()
             flash("Create new item %s!" % new_item.title, 'success')
@@ -310,35 +330,35 @@ def edit_item(item_id):
         item_description = None
         item_category_id = None
 
-        # try:
-        csrf_token = request.form['csrf_token']
-        if csrf_token != login_session['csrf_token']:
+        try:
+            csrf_token = request.form['csrf_token']
+            if csrf_token != login_session['csrf_token']:
+                return redirect(
+                    "https://www.youtube.com/watch?v=dQw4w9WgXcQ", code=301)
+
+            item_title = request.form['title']
+            item_description = request.form['description']
+            item_category_id = request.form['category']
+            item = session.query(Item).filter_by(id=item_id).one()
+            category = session.query(Category).filter_by(
+                id=item_category_id).one()
+
+            if not authorized(item.user_id):
+                flash('You are not authorized to delete this item!', 'warning')
+                return redirect(url_for('show_item', item_id=item_id))
+
+            item.title = item_title
+            item.description = item_description
+            item.category = category
+            session.commit()
+            flash("Edited the item %s!" % item.title, 'success')
             return redirect(
-                "https://www.youtube.com/watch?v=dQw4w9WgXcQ", code=301)
+                url_for('index'))
 
-        item_title = request.form['title']
-        item_description = request.form['description']
-        item_category_id = request.form['category']
-        item = session.query(Item).filter_by(id=item_id).one()
-        category = session.query(Category).filter_by(
-            id=item_category_id).one()
-
-        if not authorized(item.user_id):
-            flash('You are not authorized to delete this item!', 'warning')
-            return redirect(url_for('show_item', item_id=item_id))
-
-        item.title = item_title
-        item.description = item_description
-        item.category = category
-        session.commit()
-        flash("Edited the item %s!" % item.title, 'success')
-        return redirect(
-            url_for('index'))
-
-        # except:
-        #     session.rollback()
-        #     flash(u'Inavlid parameters. Please try again.', 'warning')
-        #     return redirect(url_for('edit_item', item_id=item_id))
+        except:
+            session.rollback()
+            flash(u'Inavlid parameters. Please try again.', 'warning')
+            return redirect(url_for('edit_item', item_id=item_id))
 
     if request.method == 'GET':
         """Send all the categories as options for the item."""
