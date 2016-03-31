@@ -3,6 +3,7 @@
 
 <div class="form">
    <form method="post" action="{{ url_for('edit_item', item_id=item_id) }}">
+       <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
        <fieldset class="form-group">
            <label for="title">Item Name:</label>
            <input class="form-control" type="text" name="title" id="title"

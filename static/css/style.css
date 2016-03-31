@@ -81,3 +81,13 @@ body {
     height: 48px;
     border-radius: 50%;
 }
+
+.single-line {
+    display: inline-block;
+}
+
+.linker {
+    display: inline;
+    border: none;
+    background-color: antiquewhite;
+}

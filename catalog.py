@@ -28,6 +28,13 @@ session = DBSession()
 app = Flask(__name__, static_url_path='/static')
 
 
+def authorized(id):
+    if get_user() is not None:
+        return get_user_id(get_user()['email']) == id
+    else:
+        return False
+
+
 def already_a_user(user_email):
     user_count = (session.query(func.count(User.id))).filter_by(
         email=user_email).scalar()
@@ -151,7 +158,7 @@ def new_category():
                                    user=get_user())
 
 
-@app.route('/category/<int:category_id>/delete')
+@app.route('/category/<int:category_id>/delete', methods=['POST'])
 def delete_category(category_id):
     """Delete the selected category. But need to clear out the dependant
     items first."""
@@ -164,6 +171,11 @@ def delete_category(category_id):
         first locating the category."""
         deleting_category = session.query(Category).filter_by(
             id=category_id).one()
+
+        if delete_category.user_id != get_user_id(login_session['email']):
+            flash("This category belong to you!", 'danger')
+            flash("Logging you out!", 'warning')
+            return redirect(url_for('gdisconnect'))
 
         """Lets locate all the items that belong to the category."""
         items_for_category = session.query(Item).filter_by(
@@ -260,16 +272,21 @@ def show_item(item_id):
         flash("Item #%i not found. Please try again." % item_id, 'warning')
         return redirect(url_for('index'))
 
-    return render_template('item.html', item=item, user=get_user())
+    return render_template('item.html', item=item, user=get_user(),
+                           authorized=authorized(item.user_id))
 
 
-@app.route('/item/<int:item_id>/delete')
+@app.route('/item/<int:item_id>/delete', methods=['POST'])
 def delete_item(item_id):
     if get_user() is None:
         return redirect(url_for('login'))
 
     try:
         item = session.query(Item).filter_by(id=item_id).one()
+        if not authorized(item.user_id):
+            flash('You are not authorized to delete this item!', 'warning')
+            return redirect(url_for('show_item', item_id=item_id))
+
         session.delete(item)
         session.commit()
         flash("Deleted item %s!" % item.title, 'danger')
@@ -289,37 +306,39 @@ def edit_item(item_id):
         if get_user() is None:
             return redirect(url_for('login'))
 
-        try:
-            csrf_token = request.form['csrf_token']
-            if csrf_token != login_session['csrf_token']:
-                return redirect(
-                    "https://www.youtube.com/watch?v=dQw4w9WgXcQ", code=301)
+        item_title = None
+        item_description = None
+        item_category_id = None
 
-            item_title = request.form['title']
-            item_description = request.form['description']
-            item_category_id = request.form['category']
-            item = session.query(Item).filter_by(id=item_id).one()
-            category = session.query(Category).filter_by(
-                id=item_category_id).one()
-            item.title = item_title
-            item.description = item_description
-            item.category = category
-            session.commit()
-            flash("Edited the item %s!" % item.title, 'success')
+        # try:
+        csrf_token = request.form['csrf_token']
+        if csrf_token != login_session['csrf_token']:
             return redirect(
-                url_for('index'))
+                "https://www.youtube.com/watch?v=dQw4w9WgXcQ", code=301)
 
-        except:
-            session.rollback()
-            flash(u'Inavlid parameters. Please try again.', 'warning')
-            categories = session.query(Category).all()
-            category = session.query(Category).filter_by(
-                id=item_category_id).one()
-            item = Item(title=item_title, description=item_description,
-                        category=category)
-            return render_template('edit_item.html',
-                                   item_id=item_id, item=item,
-                                   categories=categories, user=get_user())
+        item_title = request.form['title']
+        item_description = request.form['description']
+        item_category_id = request.form['category']
+        item = session.query(Item).filter_by(id=item_id).one()
+        category = session.query(Category).filter_by(
+            id=item_category_id).one()
+
+        if not authorized(item.user_id):
+            flash('You are not authorized to delete this item!', 'warning')
+            return redirect(url_for('show_item', item_id=item_id))
+
+        item.title = item_title
+        item.description = item_description
+        item.category = category
+        session.commit()
+        flash("Edited the item %s!" % item.title, 'success')
+        return redirect(
+            url_for('index'))
+
+        # except:
+        #     session.rollback()
+        #     flash(u'Inavlid parameters. Please try again.', 'warning')
+        #     return redirect(url_for('edit_item', item_id=item_id))
 
     if request.method == 'GET':
         """Send all the categories as options for the item."""
@@ -336,8 +355,8 @@ def edit_item(item_id):
                   'warning')
             return redirect(url_for('index'))
 
-        csrf_token = ''.join(random.choice(string.uppercase, string.digits)
-                             for x in xrange(32))
+        csrf_token = ''.join(random.choice(string.uppercase + string.digits)
+        for x in xrange(32))
         login_session['csrf_token'] = csrf_token
 
         return render_template('edit_item.html', item_id=item_id, item=item,
@@ -479,7 +498,6 @@ def gconnect():
     return response
 
 
-
 @app.route('/logout/')
 def gdisconnect():
     if get_user() is None:
@@ -493,7 +511,7 @@ def gdisconnect():
     result = http.request(url, 'GET')[0]
     print result
 
-    if result['status'] == '200':
+    if result['status'] == '200' or result['status'] == '400':
         del login_session['credentials']
         del login_session['gplus_id']
         del login_session['username']
