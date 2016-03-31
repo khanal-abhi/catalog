@@ -1,10 +1,8 @@
 from flask import Flask, render_template, url_for, request, redirect, flash, \
     jsonify, make_response
-
 from sqlalchemy import create_engine, desc, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
-
 from database_setup import Base, Item, Category, db_url, User
 from flask import session as login_session
 import random
@@ -13,9 +11,17 @@ from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 import httplib2
 import json
-
 import requests
 import os
+
+
+"""This is to validate the extension."""
+valid_ext = [
+    'png',
+    'jpg',
+    'jpeg',
+    'gif'
+]
 
 CLIENT_ID = json.loads(open('client_secrets.json', 'r').read())['web'][
     'client_id']
@@ -30,6 +36,8 @@ app = Flask(__name__, static_url_path='/static')
 
 
 def authorized(id):
+    """This will return if the current user has permission to modify the
+    item with the id or not."""
     if get_user() is not None:
         return get_user_id(get_user()['email']) == id
     else:
@@ -37,12 +45,14 @@ def authorized(id):
 
 
 def already_a_user(user_email):
+    """This will return where the email is already registered or not."""
     user_count = (session.query(func.count(User.id))).filter_by(
         email=user_email).scalar()
     return True if user_count > 0 else False
 
 
 def create_user():
+    """Will register the user based on the email address."""
     new_user = User(name=login_session['username'], email=login_session[
         'email'], picture=login_session['picture'])
     session.add(new_user)
@@ -51,14 +61,18 @@ def create_user():
 
 
 def get_user_info(user_id):
+    """Returns the user object for the given user_id."""
     return session.query(User).filter_by(id=user_id).one()
 
 
 def get_user_id(user_email):
+    """Returns the user_id for the user with the given email."""
     return session.query(User).filter_by(email=user_email).one().id
 
 
 def get_user():
+    """Returns a user dictionary object from the session if logged in or
+    None if logged out."""
     try:
         user = {
             'name': login_session['username'],
@@ -106,6 +120,7 @@ def show_category(category_id):
                                main_category=main_category, user=get_user())
 
     except:
+        """Trying to acces an invalid category"""
         flash(u'Category not found. Please try another.', 'warning')
         return redirect(url_for('index'))
 
@@ -184,6 +199,10 @@ def delete_category(category_id):
 
         """Now we just need to delete each of the items."""
         for item in items_for_category:
+            if item.image_url is not None:
+                os.remove(
+                    os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 'static/images/' + item.image_url))
             session.delete(item)
             session.commit()
 
@@ -215,7 +234,6 @@ def new_item():
         item_title = None
         item_description = None
         item_category_id = None
-        item_file_url = None
 
         try:
             csrf_token = request.form['csrf_token']
@@ -228,23 +246,30 @@ def new_item():
             item_title = request.form['title']
             item_description = request.form['description']
             item_category_id = request.form['category']
+            filename = None
 
             try:
+                """Try to access the uploaded file and see if it has a valid
+                extension."""
                 file = request.files['file']
-                filename = ''.join(random.choice(string.uppercase +
-                                                 string.digits) for x in
-                                   xrange(12))
-                filename = filename + file.filename
-                storage_path = os.path.dirname(os.path.realpath(__file__))
-                storage_path = os.path.join(storage_path, '/static/images')
-                file.save(os.path.join(storage_path, filename))
+                ext = file.filename.split('.')[-1]
+                if valid_ext.__contains__(ext):
+                    filename = ''.join(random.choice(string.uppercase +
+                                                     string.digits) for x in
+                                       xrange(12))
+                    filename = filename + file.filename
+                    storage_path = os.path.dirname(os.path.realpath(__file__))
+                    storage_path = os.path.join(storage_path, 'static/images')
+                    file.save(os.path.join(storage_path, filename))
 
             except:
-                filename = None
+                pass
 
             new_item = Item(title=item_title, description=item_description,
                             category_id=item_category_id, user_id=user_id)
 
+            """There was a filename associated that was valid with a valid
+            extention, so need to save the file loaction in the image_url."""
             if filename is not None:
                 new_item.image_url = filename
 
@@ -298,6 +323,7 @@ def show_item(item_id):
 
 @app.route('/item/<int:item_id>/delete', methods=['POST'])
 def delete_item(item_id):
+    """Will delete the item only if the user is the owner of the item."""
     if get_user() is None:
         return redirect(url_for('login'))
 
@@ -306,7 +332,10 @@ def delete_item(item_id):
         if not authorized(item.user_id):
             flash('You are not authorized to delete this item!', 'warning')
             return redirect(url_for('show_item', item_id=item_id))
-
+        if item.image_url is not None:
+            os.remove(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                               'static/images/'+item.image_url))
+            item.image_url = None
         session.delete(item)
         session.commit()
         flash("Deleted item %s!" % item.title, 'danger')
@@ -326,10 +355,6 @@ def edit_item(item_id):
         if get_user() is None:
             return redirect(url_for('login'))
 
-        item_title = None
-        item_description = None
-        item_category_id = None
-
         try:
             csrf_token = request.form['csrf_token']
             if csrf_token != login_session['csrf_token']:
@@ -342,6 +367,39 @@ def edit_item(item_id):
             item = session.query(Item).filter_by(id=item_id).one()
             category = session.query(Category).filter_by(
                 id=item_category_id).one()
+
+            filename = item.image_url
+
+            try:
+                """Similar to new item. This is access the file and if valid
+                file and valid ext found, will update the file. If no file
+                is found, will leave the image intact."""
+                file = request.files['file']
+                ext = file.filename.split('.')[-1]
+                if valid_ext.__contains__(ext):
+                    filename = ''.join(random.choice(string.uppercase +
+                                                     string.digits) for x in
+                                       xrange(12))
+                    filename = filename + file.filename
+                    storage_path = os.path.dirname(os.path.realpath(__file__))
+                    storage_path = os.path.join(storage_path, 'static/images')
+                    file.save(os.path.join(storage_path, filename))
+                    if item.image_url is not None:
+                        os.remove(os.path.join(
+                            os.path.dirname(os.path.realpath(__file__)),
+                            'static/images/' + item.image_url))
+
+            except:
+                pass
+
+            item.image_url = filename
+            delete_image = request.form['delete_image']
+            if delete_image == 'on':
+                if item.image_url is not None:
+                    os.remove(os.path.join(
+                        os.path.dirname(os.path.realpath(__file__)),
+                        'static/images/' + item.image_url))
+                    item.image_url = None
 
             if not authorized(item.user_id):
                 flash('You are not authorized to delete this item!', 'warning')
@@ -442,6 +500,7 @@ def login():
 
 @app.route('/gconnect', methods=['POST'])
 def gconnect():
+    # if the csrf test fails, return 401
     if request.args.get('csrf_token') != login_session['csrf_token']:
         response = make_response(json.dumps('Invalid csrf_token', 401))
         response.headers['Content-Type'] = 'application/json'
@@ -452,18 +511,22 @@ def gconnect():
         oauth_flow.redirect_uri = 'postmessage'
         credentials = oauth_flow.step2_exchange(code)
 
+    # if the flowexchange has an error there is an issue with the
+    # authorization code
     except FlowExchangeError:
         response = make_response(json.dumps('Failed to upgrade the '
                                             'authorization code', 401))
         response.headers['Content-Type'] = 'application/json'
         return response
 
+    # by this time, we can access the access_token sent in by google.
     access_token = credentials.access_token
     url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=%s'
            % access_token)
     http = httplib2.Http()
     result = json.loads(http.request(url, 'GET')[1])
 
+    # there was an error with the http request with the acces token
     if result.get('error') is not None:
         response = make_response(json.dumps(result.get('error'), 500))
         response.headers['Content-Type'] = 'application/json'
@@ -475,6 +538,9 @@ def gconnect():
             'Token\'s user id does not match given user\'s id.', 401))
         response.headers['Content-Type'] = 'application/json'
         return response
+
+    # client id is not the same as the response from google. Issues to
+    # someone else
 
     if result['issued_to'] != CLIENT_ID:
         response = make_response(json.dumps(
@@ -520,6 +586,8 @@ def gconnect():
 
 @app.route('/logout/')
 def gdisconnect():
+
+    # if there are not users logged in
     if get_user() is None:
         flash("No user is logged in!", 'warning')
         return redirect(url_for('index'))
@@ -531,6 +599,7 @@ def gdisconnect():
     result = http.request(url, 'GET')[0]
     print result
 
+    # logout has happened succesfully or timeout has happened with the login
     if result['status'] == '200' or result['status'] == '400':
         del login_session['credentials']
         del login_session['gplus_id']

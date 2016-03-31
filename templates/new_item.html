@@ -2,7 +2,7 @@
 {% block body %}
 
 <div class="form">
-   <form method="post" action="{{ url_for('new_item') }}">
+   <form method="post" action="{{ url_for('new_item') }}" enctype="multipart/form-data">
        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
        <fieldset class="form-group">
            <label for="title">Item Name:</label>

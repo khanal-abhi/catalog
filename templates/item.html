@@ -2,6 +2,10 @@
 {% block body %}
 
 <div class="form">
+    {% if item.image_url %}
+    <img src="{{ url_for('static', filename='images/' + item.image_url) }}"
+    class="imager" alt="Item Logo"/>
+    {% endif %}
     <fieldset class="form-group">
         <label for="title">Title:</label>
         <span class="" id="title">{{ item.title }}</span>
