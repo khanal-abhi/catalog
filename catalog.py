@@ -393,7 +393,13 @@ def edit_item(item_id):
                 pass
 
             item.image_url = filename
-            delete_image = request.form['delete_image']
+            delete_image = None
+            try:
+                delete_image = request.form['delete_image']
+
+            except:
+                pass
+
             if delete_image == 'on':
                 if item.image_url is not None:
                     os.remove(os.path.join(
@@ -401,9 +407,13 @@ def edit_item(item_id):
                         'static/images/' + item.image_url))
                     item.image_url = None
 
+            print "2"
+
             if not authorized(item.user_id):
                 flash('You are not authorized to delete this item!', 'warning')
                 return redirect(url_for('show_item', item_id=item_id))
+
+            print "3"
 
             item.title = item_title
             item.description = item_description
